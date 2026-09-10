@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>POE2 繁中詞綴查看器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">POE2 · 離線工具</p>
+        <h1>繁中詞綴查看器</h1>
+        <p class="subtitle">貼上官方 Trade 或遊戲複製的裝備文字，查看此物品等級可出的各來源詞綴與池內機率。</p>
+      </div>
+      <span class="offline">完全離線</span>
+    </header>
+
+    <section class="input-card">
+      <label for="itemText">裝備文字</label>
+      <textarea id="itemText" spellcheck="false" placeholder="在這裡按 Ctrl+V 貼上 Copy Item Text…"></textarea>
+      <div class="actions">
+        <button id="readClipboard" type="button">讀取剪貼簿</button>
+        <button id="analyze" class="primary" type="button">查看詞綴</button>
+        <button id="sample" class="ghost" type="button">載入範例</button>
+        <button id="clear" class="ghost" type="button">清除</button>
+      </div>
+      <p id="status" class="status" role="status">等待貼上裝備文字</p>
+    </section>
+
+    <section id="result" class="result hidden" aria-live="polite">
+      <div class="item-summary">
+        <div><span>底子</span><strong id="baseType">—</strong></div>
+        <div><span>物品種類</span><strong id="itemClass">—</strong></div>
+        <div><span>物品等級</span><strong id="itemLevel">—</strong></div>
+        <div><span>資料分類</span><strong id="category">—</strong></div>
+      </div>
+      <details class="domain-section existing-section" open>
+        <summary class="domain-heading">
+          <div><p class="domain-kicker">目前物品</p><h2>物品已有詞綴</h2></div>
+          <span id="existingCount" class="count">0</span>
+        </summary>
+        <div class="domain-body"><div id="existingMods" class="existing-list"></div></div>
+      </details>
+      <div class="probability-note">
+        <strong>機率口徑</strong>
+        <span>按當前物品等級下，同一來源、同一前綴或後綴池的有效 weight 總和計算；物品已有詞綴系列會從池中排除。精髓類為指定必出，不計算機率。</span>
+      </div>
+      <div class="search-row">
+        <label for="modSearch">搜尋詞綴</label>
+        <input id="modSearch" type="search" placeholder="搜尋繁中、英文詞句或來源…" autocomplete="off">
+        <span>搜尋只篩選畫面，不改變機率分母。</span>
+      </div>
+      <div id="domainSections"></div>
+    </section>
+
+    <footer>
+      解析與分類沿用 XileHUD 思路；詞綴池、來源、weight 與繁中詞句取自 PoE2DB 中英對照資料。完全離線。
+    </footer>
+  </main>
+  <script src="affixes-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
