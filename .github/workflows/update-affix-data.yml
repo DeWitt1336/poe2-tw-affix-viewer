@@ -1,0 +1,63 @@
+name: 更新数据库并部署网站
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 读取仓库
+        uses: actions/checkout@v6
+
+      - name: 设置 Python
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: 下载并重建词缀数据
+        if: github.event_name == 'workflow_dispatch'
+        run: python3 tools/update_data.py
+
+      - name: 提交更新
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          if git diff --quiet -- affixes-data.js; then
+            echo "PoE2DB 数据没有变化，无需提交。"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add affixes-data.js
+          git commit -m "Update PoE2DB affix data"
+          git push
+
+      - name: 设置 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 打包网站
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: "."
+
+      - name: 部署网站
+        id: deployment
+        uses: actions/deploy-pages@v4
