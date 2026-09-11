@@ -198,31 +198,72 @@
     const index = translationIndex(item.category);
     const results = [];
     let pending = null;
-    const skip = /^(?:-{8,}|Corrupted|Unidentified|Mirrored|Sanctified|已汙染|未鑑定|複製品|Note:|備註:|Item sells for:|物品售價:)/i;
+    let pendingLines = [];
+    const separator = /^-{8,}$/;
+    const skip = /^(?:Corrupted|Unidentified|Mirrored|Sanctified|已汙染|未鑑定|複製品|Note:|備註:|Item sells for:|物品售價:)/i;
     const metadata = /^(?:Sockets|插槽|Quality|品質|Item Level|物品等級|物品等级):/i;
+    const header = /^\{.*\bModifier\b.*\}$/i;
+    const cleanLine = (line) => line.replace(/\s*\((?:implicit|enchant|rune|crafted)\)\s*$/i, "").trim();
+    const translateLine = (line) => {
+      const matched = matchExisting(line, index);
+      return matched && /[A-Za-z]{3}/.test(line) ? transplantNumbers(matched.text, line) : line;
+    };
+    const append = (lines, details = null) => {
+      if (!lines.length) return;
+      const cleaned = lines.map(cleanLine).filter(Boolean);
+      if (!cleaned.length) return;
+      const combined = cleaned.join("");
+      const matched = matchExisting(combined, index);
+      const implicit = lines.some((line) => /\((?:implicit|enchant)\)/i.test(line));
+      const translated = cleaned.length > 1
+        ? cleaned.map(translateLine).join(" ／ ")
+        : translateLine(cleaned[0]);
+      results.push({
+        text: translated,
+        side: details?.side || (implicit ? "implicit" : matched?.side || "existing"),
+        tier: details?.tier || matched?.tier || 0,
+        domain: matched?.domain || "",
+        family: matched?.family || ""
+      });
+    };
+    const flushPending = () => {
+      if (pendingLines.length) append(pendingLines, pending);
+      pendingLines = [];
+      pending = null;
+    };
     for (let i = start + 1; i < item.lines.length; i += 1) {
       const line = item.lines[i];
-      if (!line || skip.test(line) || metadata.test(line)) continue;
-      if (/^\{.*\bModifier\b.*\}$/i.test(line)) {
+      if (header.test(line)) {
+        flushPending();
         pending = {
           side: /Prefix Modifier/i.test(line) ? "prefix" : /Suffix Modifier/i.test(line) ? "suffix" : "existing",
           tier: Number.parseInt(line.match(/Tier:\s*(\d+)/i)?.[1] || "0", 10)
         };
         continue;
       }
-      const clean = line.replace(/\s*\((?:implicit|enchant|rune|crafted)\)\s*$/i, "").trim();
-      const matched = matchExisting(clean, index);
-      const translated = matched && /[A-Za-z]{3}/.test(clean) ? transplantNumbers(matched.text, clean) : clean;
-      const implicit = /\((?:implicit|enchant)\)/i.test(line);
-      results.push({
-        text: translated,
-        side: pending?.side || (implicit ? "implicit" : matched?.side || "existing"),
-        tier: pending?.tier || matched?.tier || 0,
-        domain: matched?.domain || "",
-        family: matched?.family || ""
-      });
-      pending = null;
+      if (!line || separator.test(line) || skip.test(line) || metadata.test(line)) {
+        flushPending();
+        continue;
+      }
+      if (pending) {
+        pendingLines.push(line);
+        continue;
+      }
+
+      let composite = null;
+      for (let size = 3; size >= 2; size -= 1) {
+        const candidateLines = item.lines.slice(i, i + size);
+        if (candidateLines.length !== size || candidateLines.some((candidate) =>
+          !candidate || separator.test(candidate) || skip.test(candidate) || metadata.test(candidate) || header.test(candidate))) continue;
+        if (matchExisting(candidateLines.map(cleanLine).join(""), index)) {
+          composite = candidateLines;
+          break;
+        }
+      }
+      append(composite || [line]);
+      if (composite) i += composite.length - 1;
     }
+    flushPending();
     return results;
   }
 

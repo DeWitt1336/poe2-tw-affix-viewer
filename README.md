@@ -9,6 +9,7 @@
 - 識別英文與常見繁中格式的裝備文字。
 - 物品種類、底子與詞綴優先顯示繁中名稱。
 - 依現有詞綴數值判定實際 Tier。
+- 正確合併同一個 Modifier 區塊中的多行復合詞綴，不會誤刪對應的單項詞綴。
 - 自動排除物品已有的詞綴系列，並重新計算剩餘詞綴機率。
 - 依物品等級過濾尚不可出現的 Tier。
 - 分開顯示基礎通貨、褻瀆、精髓、裂痕、合金、腐化等來源。
@@ -25,6 +26,7 @@
 
 ## 更新詞綴資料
 
+- GitHub：進入儲存庫的 `Actions → 更新数据库并部署网站 → Run workflow`，GitHub 會自動重建、提交資料並更新線上版。
 - macOS：雙擊 `update-data.command`。
 - Windows／其他系統：在此資料夾執行 `python3 tools/update_data.py`。
 
@@ -56,6 +58,7 @@
 - 程式結構與解析邏輯基於 [XileHUD](https://github.com/XileHUD/poe_overlay)（GPL-3.0-only）裁剪。
 - 詞綴數值、來源、ilvl、weight 與繁中詞句由 [PoE2DB](https://poe2db.tw/) 中英頁面自動對齊；資料內容依來源標示採 CC BY-NC-SA 3.0。
 - 詳細歸屬與聲明請見 [NOTICE.md](NOTICE.md)。
+- GitHub 上傳與資料庫更新的完整步驟請見 [GITHUB-UPDATE.md](GITHUB-UPDATE.md)。
 
 程式碼依 [GPL-3.0-only](LICENSE) 條款提供；資料內容仍受其原始授權條款約束。
 
