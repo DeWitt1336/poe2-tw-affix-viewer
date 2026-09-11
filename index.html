@@ -12,14 +12,14 @@
       <div>
         <p class="eyebrow">POE2 · 離線工具</p>
         <h1>繁中詞綴查看器</h1>
-        <p class="subtitle">貼上官方 Trade 或遊戲複製的裝備文字，查看此物品等級可出的各來源詞綴與池內機率。</p>
+        <p class="subtitle">貼上裝備文字，查看當前物品等級可出的詞綴與池內機率。</p>
       </div>
       <span class="offline">完全離線</span>
     </header>
 
     <section class="input-card">
       <label for="itemText">裝備文字</label>
-      <textarea id="itemText" spellcheck="false" placeholder="在這裡按 Ctrl+V 貼上 Copy Item Text…"></textarea>
+      <textarea id="itemText" spellcheck="false" placeholder="在這裡按 Ctrl+V 貼上；遊戲內建議先對裝備按 Ctrl+Alt+C…"></textarea>
       <div class="actions">
         <button id="readClipboard" type="button">讀取剪貼簿</button>
         <button id="analyze" class="primary" type="button">查看詞綴</button>
@@ -27,6 +27,7 @@
         <button id="clear" class="ghost" type="button">清除</button>
       </div>
       <p id="status" class="status" role="status">等待貼上裝備文字</p>
+      <p class="status">普通複製文字無法可靠拆分復合詞綴，因此只展示、不剔除詞綴庫；遊戲內使用 Ctrl+Alt+C 高級複製後，才會識別 Tier 並剔除已有詞綴。</p>
     </section>
 
     <section id="result" class="result hidden" aria-live="polite">
@@ -45,7 +46,7 @@
       </details>
       <div class="probability-note">
         <strong>機率口徑</strong>
-        <span>按當前物品等級下，同一來源、同一前綴或後綴池的有效 weight 總和計算；物品已有詞綴系列會從池中排除。精髓類為指定必出，不計算機率。</span>
+        <span>按當前物品等級下，同一來源、同一前綴或後綴池的有效 weight 總和計算；只有高級複製能可靠排除已有詞綴。精髓類為指定必出，不計算機率。</span>
       </div>
       <div class="search-row">
         <label for="modSearch">搜尋詞綴</label>

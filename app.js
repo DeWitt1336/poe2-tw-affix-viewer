@@ -50,7 +50,7 @@
   }
 
   function labeledValue(lines, labels) {
-    const pattern = new RegExp(`^(?:${labels.map(escapeRegex).join("|")}):\\s*(.+)$`, "i");
+    const pattern = new RegExp(`^(?:#+\\s*)?(?:${labels.map(escapeRegex).join("|")}):\\s*(.+)$`, "i");
     for (const line of lines) {
       const match = line.match(pattern);
       if (match) return match[1].trim();
@@ -168,7 +168,7 @@
       for (const group of groups) {
         for (const tier of group.tiers) {
           const record = {
-            text: tier.text, textEn: tier.textEn, side: group.side, domain,
+            text: tier.text, textEn: tier.textEn, name: tier.name, side: group.side, domain,
             tier: tier.tier, family: group.family, ilvl: tier.ilvl
           };
           if (tier.textEn) add(signature(tier.textEn), record);
@@ -179,8 +179,12 @@
     return index;
   }
 
-  function matchExisting(value, index) {
-    const candidates = index.get(signature(value)) || [];
+  function matchingCandidates(value, index, itemLevel) {
+    return (index.get(signature(value)) || []).filter((candidate) => !itemLevel || candidate.ilvl <= itemLevel);
+  }
+
+  function matchExisting(value, index, itemLevel) {
+    const candidates = matchingCandidates(value, index, itemLevel);
     if (!candidates.length) return null;
     const priority = (candidate) => candidate.domain === "normal" ? 0 : 1;
     return [...candidates]
@@ -192,7 +196,7 @@
   }
 
   function extractExistingModifiers(item) {
-    const levelPattern = new RegExp(`^(?:${LABELS.itemLevel.map(escapeRegex).join("|")}):`, "i");
+    const levelPattern = new RegExp(`^(?:#+\\s*)?(?:${LABELS.itemLevel.map(escapeRegex).join("|")}):`, "i");
     const start = item.lines.findIndex((line) => levelPattern.test(line));
     if (start < 0) return [];
     const index = translationIndex(item.category);
@@ -202,10 +206,10 @@
     const separator = /^-{8,}$/;
     const skip = /^(?:Corrupted|Unidentified|Mirrored|Sanctified|已汙染|未鑑定|複製品|Note:|備註:|Item sells for:|物品售價:)/i;
     const metadata = /^(?:Sockets|插槽|Quality|品質|Item Level|物品等級|物品等级):/i;
-    const header = /^\{.*\bModifier\b.*\}$/i;
+    const header = /^(?:#+\s*)?\{.*\bModifier\b.*\}$/i;
     const cleanLine = (line) => line.replace(/\s*\((?:implicit|enchant|rune|crafted)\)\s*$/i, "").trim();
     const translateLine = (line) => {
-      const matched = matchExisting(line, index);
+      const matched = matchExisting(line, index, item.itemLevel);
       return matched && /[A-Za-z]{3}/.test(line) ? transplantNumbers(matched.text, line) : line;
     };
     const append = (lines, details = null) => {
@@ -213,17 +217,18 @@
       const cleaned = lines.map(cleanLine).filter(Boolean);
       if (!cleaned.length) return;
       const combined = cleaned.join("");
-      const matched = matchExisting(combined, index);
+      const matched = matchExisting(combined, index, item.itemLevel);
       const implicit = lines.some((line) => /\((?:implicit|enchant)\)/i.test(line));
       const translated = cleaned.length > 1
         ? cleaned.map(translateLine).join(" ／ ")
         : translateLine(cleaned[0]);
       results.push({
         text: translated,
-        side: details?.side || (implicit ? "implicit" : matched?.side || "existing"),
-        tier: details?.tier || matched?.tier || 0,
-        domain: matched?.domain || "",
-        family: matched?.family || ""
+        side: details?.side || (implicit ? "implicit" : "existing"),
+        tier: details?.tier || 0,
+        domain: details ? (matched?.domain || "") : "",
+        family: details ? (matched?.family || "") : "",
+        sourceName: details ? (matched?.name || "") : ""
       });
     };
     const flushPending = () => {
@@ -250,18 +255,7 @@
         continue;
       }
 
-      let composite = null;
-      for (let size = 3; size >= 2; size -= 1) {
-        const candidateLines = item.lines.slice(i, i + size);
-        if (candidateLines.length !== size || candidateLines.some((candidate) =>
-          !candidate || separator.test(candidate) || skip.test(candidate) || metadata.test(candidate) || header.test(candidate))) continue;
-        if (matchExisting(candidateLines.map(cleanLine).join(""), index)) {
-          composite = candidateLines;
-          break;
-        }
-      }
-      append(composite || [line]);
-      if (composite) i += composite.length - 1;
+      append([line]);
     }
     flushPending();
     return results;
@@ -365,7 +359,8 @@
     $("existingMods").innerHTML = modifiers.map((modifier) => {
       const kind = modifier.side === "prefix" ? "前綴" : modifier.side === "suffix" ? "後綴" : modifier.side === "implicit" ? "固定／隱性" : "已有詞綴";
       const tier = (modifier.side === "prefix" || modifier.side === "suffix") && modifier.tier ? ` · T${modifier.tier}` : "";
-      return `<div class="existing-mod"><span class="kind">${kind}${tier}</span><span class="existing-text">${escapeHtml(modifier.text)}</span></div>`;
+      const source = modifier.sourceName ? `<small class="existing-source">${escapeHtml(modifier.sourceName)}</small>` : "";
+      return `<div class="existing-mod"><span class="kind">${kind}${tier}</span><span class="existing-text">${escapeHtml(modifier.text)}${source}</span></div>`;
     }).join("") || '<div class="empty">複製文字中沒有可辨識的現有詞綴</div>';
   }
 
@@ -374,8 +369,9 @@
       const item = parseItem(input.value);
       const domains = DATA.categories[item.category];
       const existing = extractExistingModifiers(item);
+      const advancedCopy = item.lines.some((line) => /^(?:#+\s*)?\{.*\bModifier\b.*\}$/i.test(line));
       const blockedFamilies = new Set(existing
-        .filter((modifier) => (modifier.side === "prefix" || modifier.side === "suffix") && modifier.family)
+        .filter((modifier) => advancedCopy && (modifier.side === "prefix" || modifier.side === "suffix") && modifier.family)
         .flatMap((modifier) => modifier.family.split("/").filter(Boolean)));
       const query = ($("modSearch").value || "").trim().toLowerCase();
       const baseZh = DATA.meta.baseTranslations[item.baseType] || item.baseType || item.name || "—";
@@ -396,7 +392,10 @@
       }
       $("domainSections").innerHTML = sections.join("") || '<div class="empty search-empty">沒有符合搜尋條件的詞綴</div>';
       $("result").classList.remove("hidden");
-      setStatus(`已載入 ${existing.length} 條物品現有詞綴、${availableGroups} 組可用詞綴；已排除現有詞綴系列並按 ilvl ${item.itemLevel} 重新計算機率。`, "ok");
+      const modeText = advancedCopy
+        ? "已按高級複製資訊排除現有詞綴系列"
+        : "普通複製不含可靠的詞綴身份，因此不剔除下方詞綴";
+      setStatus(`已載入 ${existing.length} 條物品現有詞綴、${availableGroups} 組可用詞綴；${modeText}。`, "ok");
     } catch (error) {
       $("result").classList.add("hidden");
       setStatus(error.message || String(error), "error");

@@ -81,6 +81,7 @@ button.ghost { background: transparent; color: var(--muted); }
 .existing-mod { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; align-items: start; padding: 11px 12px; border: 1px solid #334052; border-radius: 8px; background: #111821; }
 .existing-mod .kind { color: var(--gold-2); font-size: 11px; }
 .existing-mod .existing-text { line-height: 1.45; font-size: 13px; }
+.existing-source { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
 .probability-note { display: flex; gap: 10px; margin-top: 18px; padding: 10px 12px; border: 1px solid #344250; border-radius: 8px; background: #121a22; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .probability-note strong { flex: none; color: #9fe0ae; }
 .search-row { display: grid; grid-template-columns: auto minmax(180px, 430px) minmax(0, 1fr); align-items: center; gap: 10px; margin-top: 10px; }
